@@ -106,3 +106,14 @@ test('平均剛好在 0.05 時照四捨五入（不受小數誤差影響）', as
   assert.equal(result.avg, 74.1);
   assert.equal(nameAt(result.to), '彰化75');
 });
+
+test('環島完成的總結：開始體重、最後一週平均、花了幾週', async () => {
+  const { journeySummary } = await import('../map.js');
+  const days = {
+    '2026-10-07': weigh(80.1), // 開始日（週三）
+    ...weekOf('2026-10-12', [[0, 70], [1, 70], [2, 70]]), // 還沒到
+    ...weekOf('2026-10-19', [[0, 64.9], [1, 64.8], [2, 64.7]]), // 平均 64.8 → 到終點
+  };
+  assert.equal(journeySummary(days, '2026-10-07', '2026-10-20'), null); // 還沒結算到
+  assert.deepEqual(journeySummary(days, '2026-10-07', '2026-10-27'), { startWeight: 80.1, finalAvg: 64.8, lost: 15.3, weeks: 3 });
+});

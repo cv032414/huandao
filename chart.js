@@ -8,6 +8,9 @@ const WIDTH = 340;
 const HEIGHT = 190;
 const PAD = Object.freeze({ top: 12, right: 12, bottom: 26, left: 38 });
 const DOT_RADIUS = 4;
+const SMALL_DOT_RADIUS = 3;
+/** 點很多時（例如看「全部」）改用小一點的點，免得擠成一團 */
+const DENSE_POINTS = 60;
 
 function svg(tag, attrs = {}, ...children) {
   const el = document.createElementNS(SVG_NS, tag);
@@ -33,8 +36,34 @@ function formatNumber(value, digits) {
   return Number.isInteger(value) && digits === 0 ? String(value) : value.toFixed(digits);
 }
 
-function linePath(points, scales) {
-  return points.map((point, i) => `${i === 0 ? 'M' : 'L'}${scales.x(point.date).toFixed(1)},${scales.y(point.value).toFixed(1)}`).join(' ');
+/**
+ * 平滑曲線每一點的斜率（單調三次曲線）：
+ * 曲線只會在點和點之間平順地轉彎，不會超出前後兩點的高低（不會畫出假的高峰）。
+ */
+export function monotoneSlopes(xs, ys) {
+  const n = xs.length;
+  const secants = xs.slice(1).map((x, i) => (ys[i + 1] - ys[i]) / (x - xs[i]));
+  return xs.map((_, i) => {
+    if (i === 0) return secants[0] ?? 0;
+    if (i === n - 1) return secants[n - 2];
+    const [a, b] = [secants[i - 1], secants[i]];
+    if (a * b <= 0) return 0; // 轉折點：平平的
+    const [w1, w2] = [2 * (xs[i + 1] - xs[i]) + (xs[i] - xs[i - 1]), (xs[i + 1] - xs[i]) + 2 * (xs[i] - xs[i - 1])];
+    return (w1 + w2) / (w1 / a + w2 / b);
+  });
+}
+
+/** 把一週平均的點連成平滑的線 */
+function smoothPath(points, scales) {
+  const xs = points.map((point) => scales.x(point.date));
+  const ys = points.map((point) => scales.y(point.value));
+  const slopes = monotoneSlopes(xs, ys);
+  const fmt = (n) => n.toFixed(1);
+  return xs.map((x, i) => {
+    if (i === 0) return `M${fmt(x)},${fmt(ys[0])}`;
+    const dx = (x - xs[i - 1]) / 3;
+    return `C${fmt(xs[i - 1] + dx)},${fmt(ys[i - 1] + slopes[i - 1] * dx)} ${fmt(x - dx)},${fmt(ys[i] - slopes[i] * dx)} ${fmt(x)},${fmt(ys[i])}`;
+  }).join(' ');
 }
 
 function gridLayer(valueDomain, scales, digits) {
@@ -74,10 +103,11 @@ export function nearestPoint(points, scales, x) {
 
 /**
  * 畫一張趨勢圖。
- * daily：每天的點；weekly（可省略）：一週平均線。點圖時把數字寫在 readout 那一行。
+ * daily：每天的點；weekly：一週平均（畫成平滑的線，點畫在線的上面）。點圖時把數字寫在 readout 那一行。
  */
-export function trendChart({ label, unit, digits, daily, weekly = null, domain, startDate, showDailyLine }) {
-  const allValues = [...daily, ...(weekly ?? [])].map((point) => point.value);
+export function trendChart({ label, unit, digits, daily, weekly, domain, startDate }) {
+  const allValues = [...daily, ...weekly].map((point) => point.value);
+  const dotRadius = daily.length > DENSE_POINTS ? SMALL_DOT_RADIUS : DOT_RADIUS;
   const valueDomain = niceValueDomain(allValues, unit === '公斤' ? 2 : 1);
   const scales = createScales(domain, valueDomain);
 
@@ -97,10 +127,8 @@ export function trendChart({ label, unit, digits, daily, weekly = null, domain, 
   startMarker(startDate, domain, scales),
   dateLabels(domain, scales),
   cursor,
-  showDailyLine && daily.length > 1 ? svg('path', { class: 'chart-line chart-series-1', d: linePath(daily, scales) }) : null,
-  weekly && weekly.length > 1 ? svg('path', { class: 'chart-line chart-series-2', d: linePath(weekly, scales) }) : null,
-  svg('g', {}, ...daily.map((point) => svg('circle', { class: 'chart-dot chart-series-1', cx: scales.x(point.date), cy: scales.y(point.value), r: DOT_RADIUS }))),
-  weekly ? svg('g', {}, ...weekly.map((point) => svg('circle', { class: 'chart-dot chart-series-2', cx: scales.x(point.date), cy: scales.y(point.value), r: DOT_RADIUS }))) : null,
+  weekly.length > 1 ? svg('path', { class: 'chart-line chart-series-2', d: smoothPath(weekly, scales) }) : null,
+  svg('g', {}, ...daily.map((point) => svg('circle', { class: 'chart-dot chart-series-1', cx: scales.x(point.date), cy: scales.y(point.value), r: dotRadius }))),
   highlight);
 
   const show = (event) => {
@@ -109,7 +137,7 @@ export function trendChart({ label, unit, digits, daily, weekly = null, domain, 
     const x = ((event.clientX - box.left) / box.width) * WIDTH;
     const point = nearestPoint(daily, scales, x);
     if (!point) return;
-    const week = weekly?.find((item) => daysBetween(item.weekStart, point.date) >= 0 && daysBetween(item.weekStart, point.date) < 7);
+    const week = weekly.find((item) => daysBetween(item.weekStart, point.date) >= 0 && daysBetween(item.weekStart, point.date) < 7);
     readout.textContent = `${formatShortDate(point.date)}：${formatNumber(point.value, digits)} ${unit}`
       + (week ? `・那週平均 ${formatNumber(week.value, digits)} ${unit}` : '');
     const cx = scales.x(point.date);

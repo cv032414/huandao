@@ -2,7 +2,7 @@ import { getAppDate, toDateKey, addDays } from './day.js';
 import {
   loadData, saveData, saveSafetyCopy, loadSafetyCopy, createEmptyData, SAFETY_COPY_KEY, withMenuPlan,
 } from './store.js';
-import { planDay, changeStore, storesForMeal } from './menu.js';
+import { planDay, changeStore, storesForMeal, storeById } from './menu.js';
 import { MEAL_ORDER } from './menu-data.js';
 import { renderMenu } from './views/menu.js';
 import { renderTraining } from './views/training.js';
@@ -135,10 +135,13 @@ function restoreDrafts(view, drafts) {
  * 今天還沒有菜單就排一份並存起來（不重畫畫面）。
  * 排好就固定，重新打開工具也不會變。
  */
+/** 這一餐排的店還有賣這一餐嗎（菜單庫改過後，例如麥當勞不再排早餐） */
+const isUsableMeal = (plan, mealId) => Boolean(plan?.[mealId]) && storeById(plan[mealId].store)?.meals.includes(mealId) === true;
+
 function fillMenuPlan(existing, yesterdayPlan) {
   if (!existing) return planDay(Math.random, yesterdayPlan);
-  // 有幾餐壞掉時，只重排那幾餐，並盡量讓一天總熱量還在範圍內
-  return MEAL_ORDER.filter((mealId) => !existing[mealId]).reduce((plan, mealId) => {
+  // 有幾餐壞掉（或那家店不再排這一餐）時，只重排那幾餐，並盡量讓一天總熱量還在範圍內
+  return MEAL_ORDER.filter((mealId) => !isUsableMeal(existing, mealId)).reduce((plan, mealId) => {
     const stores = storesForMeal(mealId);
     const store = stores[Math.floor(Math.random() * stores.length)];
     return changeStore(plan, mealId, store.id, Math.random, yesterdayPlan);
@@ -148,7 +151,7 @@ function fillMenuPlan(existing, yesterdayPlan) {
 function ensureTodayMenuPlan() {
   const todayKey = toDateKey(getAppDate(new Date()));
   const existing = state.data.days[todayKey]?.menuPlan;
-  if (existing && MEAL_ORDER.every((mealId) => existing[mealId])) return;
+  if (existing && MEAL_ORDER.every((mealId) => isUsableMeal(existing, mealId))) return;
   const yesterdayPlan = state.data.days[addDays(todayKey, -1)]?.menuPlan ?? null;
   let plan;
   try {

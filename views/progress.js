@@ -6,7 +6,7 @@ import { trendChart } from '../chart.js';
 import { addDays } from '../day.js';
 import { weekStartKey } from '../game.js';
 import { historyList } from './history.js';
-import { h, notice, pageHeader, formatShortDate } from '../ui.js';
+import { h, notice, pageHeader } from '../ui.js';
 
 // 只是看圖的選擇，不存進資料；關掉工具就回到預設
 const viewState = { rangeId: DEFAULT_RANGE_ID, sample: null };
@@ -26,14 +26,12 @@ function legend() {
     h('span', { className: 'legend-item' }, h('span', { className: 'legend-line chart-series-2', 'aria-hidden': 'true' }), '一週平均（週一到週日）'));
 }
 
-function changeText(points, unit, digits, isWeekly) {
+function changeText(points, unit, digits) {
   const change = changeSummary(points);
   if (!change) return null;
   const sign = change.diff > 0 ? '+' : '';
   const diff = `${sign}${change.diff.toFixed(digits)} ${unit}`;
-  const text = isWeekly
-    ? `第一週平均 ${change.from.value.toFixed(digits)} → 最近一週平均 ${change.to.value.toFixed(digits)}（${diff}）`
-    : `${formatShortDate(change.from.date)} → ${formatShortDate(change.to.date)}：${diff}`;
+  const text = `第一週平均 ${change.from.value.toFixed(digits)} → 最近一週平均 ${change.to.value.toFixed(digits)}（${diff}）`;
   return h('p', { className: 'chart-change', text });
 }
 
@@ -54,7 +52,7 @@ function weeklyInDomain(all, domain) {
   );
 }
 
-function chartCard({ metric, days, todayKey, startDate, isWeight, domain }) {
+function chartCard({ metric, days, todayKey, startDate, domain }) {
   const all = dailyPoints(days, metric.key, todayKey);
   const daily = pointsInDomain(all, domain);
   const title = h('h2', { text: `${metric.label}（${metric.unit}）` });
@@ -62,18 +60,18 @@ function chartCard({ metric, days, todayKey, startDate, isWeight, domain }) {
     return h('section', { className: 'card chart-card' }, title,
       h('p', { className: 'note', text: all.length ? '這段期間沒有紀錄，可以換成「全部」看看。' : `還沒有${metric.label}的紀錄。` }));
   }
-  const weekly = isWeight ? weeklyInDomain(all, domain) : null;
+  const weekly = weeklyInDomain(all, domain);
   // 變化只比「已經過完的週」，本週還沒過完，數字還會變
-  const finishedWeeks = weekly?.filter((week) => week.weekStart < weekStartKey(todayKey));
+  const finishedWeeks = weekly.filter((week) => week.weekStart < weekStartKey(todayKey));
   const chart = trendChart({
-    label: metric.label, unit: metric.unit, digits: metric.digits, daily, weekly, domain, startDate, showDailyLine: !isWeight,
+    label: metric.label, unit: metric.unit, digits: metric.digits, daily, weekly, domain, startDate,
   });
   return h('section', { className: 'card chart-card' },
     title,
-    isWeight ? legend() : null,
+    legend(),
     chart.element,
     chart.readout,
-    changeText(isWeight ? finishedWeeks : daily, metric.unit, metric.digits, isWeight),
+    changeText(finishedWeeks, metric.unit, metric.digits),
     daily.length < 2 ? h('p', { className: 'note', text: '再多記幾天，就看得出趨勢。' }) : null);
 }
 
@@ -116,8 +114,8 @@ export function renderProgress(ctx) {
   const source = viewState.sample ?? { days: data.days, startDate: data.progress.startDate };
   // 四張圖用同一段時間（以體重紀錄為準），方便上下對照
   const domain = rangeDomain(viewState.rangeId, dailyPoints(source.days, 'weightKg', todayKey), todayKey);
-  const charts = METRICS.map((metric, index) => chartCard({
-    metric, days: source.days, todayKey, startDate: source.startDate, isWeight: index === 0, domain,
+  const charts = METRICS.map((metric) => chartCard({
+    metric, days: source.days, todayKey, startDate: source.startDate, domain,
   }));
   return [
     pageHeader('成果', viewState.sample ? '試玩中（假資料）' : '體重和身體數值的變化'),

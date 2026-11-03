@@ -85,3 +85,11 @@ test('試玩假資料：大約 4 個月、往下的趨勢、數值合理、開�
   assert.ok(weights.every((w) => w > 70 && w < 82));
   assert.ok(weights.slice(-10).reduce((a, b) => a + b) / 10 < weights.slice(0, 10).reduce((a, b) => a + b) / 10);
 });
+
+test('平滑線：不會超出前後兩點的高低，轉折點是平的', async () => {
+  const { monotoneSlopes } = await import('../chart.js');
+  assert.deepEqual(monotoneSlopes([0, 1, 2], [0, 1, 2]), [1, 1, 1]); // 直線還是直線
+  assert.equal(monotoneSlopes([0, 1, 2], [0, 1, 0])[1], 0); // 山頂是平的
+  assert.deepEqual(monotoneSlopes([0, 1], [5, 3]), [-2, -2]);
+  assert.deepEqual(monotoneSlopes([0], [5]), [0]);
+});

@@ -10,6 +10,7 @@ const MARGIN = 14;
 const WIDTH = 244;
 const HEIGHT = 372;
 const LABEL_GAP = 7;
+const CAR_LIFT = 13;
 const LABEL_PLACEMENT = Object.freeze({
   left: { dx: -LABEL_GAP, dy: 3.5, anchor: 'end' },
   right: { dx: LABEL_GAP, dy: 3.5, anchor: 'start' },
@@ -82,5 +83,6 @@ export function taiwanMap(stationIndex, { label }) {
       return svg('circle', { class: `map-stop${i <= stationIndex ? ' map-stop-reached' : ''}`, cx: x, cy: y, r: 4 });
     })),
     svg('g', {}, ...STATIONS.map((station, i) => stationLabel(station, i, i <= stationIndex))),
-    svg('g', { transform: `translate(${car.x.toFixed(1)},${(car.y - 6).toFixed(1)})` }, carShape()));
+    // 小車停在站點的正上方，不蓋住旁邊的站名
+    svg('g', { transform: `translate(${car.x.toFixed(1)},${(car.y - CAR_LIFT).toFixed(1)})` }, carShape()));
 }

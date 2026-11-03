@@ -95,3 +95,10 @@ export function nextActiveStep(steps, index) {
 export function estimateSeconds(steps) {
   return steps.reduce((sum, step) => sum + (step.mode === 'reps' ? step.amount * SECONDS_PER_REP : step.amount), 0);
 }
+
+/** 一次訓練裡，跳過的動作（休息不算）超過一半 → 完成時要先問「有實際做完嗎？」 */
+export function isMostlySkipped(steps, skippedIndexes) {
+  const active = steps.map((step, i) => [step, i]).filter(([step]) => step.kind !== 'rest');
+  const skipped = active.filter(([, i]) => skippedIndexes.has(i)).length;
+  return skipped * 2 > active.length;
+}

@@ -26,12 +26,11 @@ export const STORES = Object.freeze([
         { id: 'bs-cheese-egg', name: '起司蛋（1 顆蛋＋1 片起司）', kcal: 160 },
       ],
       staple: [
-        { id: 'bs-toast', name: '全麥吐司 2 片', kcal: 170 },
         { id: 'bs-danbing', name: '原味蛋餅（不加醬）', kcal: 250 },
-        { id: 'bs-mantou', name: '雜糧饅頭半顆', kcal: 150 },
+        // 食藥署資料庫蘿蔔糕約 130 大卡／100 克；早餐店 2 片約 150 克，加上少量煎油
+        { id: 'bs-radish-cake', name: '蘿蔔糕 2 片（請老闆少油）', kcal: 240 },
       ],
       veg: [
-        { id: 'bs-lettuce', name: '吐司夾生菜＋番茄片', kcal: 20 },
         { id: 'bs-salad', name: '生菜沙拉（醬另外放、少加）', kcal: 70 },
         { id: 'bs-fruit', name: '水果（香蕉 1 根或蘋果半顆）', kcal: 90 },
       ],
@@ -53,18 +52,13 @@ export const STORES = Object.freeze([
         { id: 'cvs-tea-egg', name: '茶葉蛋 2 顆', kcal: 150 },
         { id: 'cvs-chicken', name: '即食雞胸肉 1 包', kcal: 120 },
         { id: 'cvs-oden', name: '關東煮：豆腐＋蛋', kcal: 130 },
-        { id: 'cvs-edamame', name: '鹽味毛豆 1 盒', kcal: 150 },
-        { id: 'cvs-yogurt', name: '無糖優格 1 杯', kcal: 100, meals: B },
       ],
       staple: [
         { id: 'cvs-sweet-potato', name: '烤地瓜（中）', kcal: 220 },
         { id: 'cvs-onigiri', name: '鮭魚飯糰 1 個', kcal: 200 },
-        { id: 'cvs-corn', name: '水煮玉米 1 根', kcal: 150 },
-        { id: 'cvs-bread', name: '全麥雜糧麵包（小）', kcal: 180 },
       ],
       veg: [
         { id: 'cvs-salad', name: '生菜沙拉（醬料只加一半）', kcal: 60 },
-        { id: 'cvs-radish', name: '關東煮：白蘿蔔＋高麗菜捲', kcal: 50 },
         { id: 'cvs-fruit-cup', name: '水果杯（小）', kcal: 80 },
         { id: 'cvs-veg-box', name: '溫沙拉／蔬菜盒', kcal: 90 },
         { id: 'cvs-banana', name: '香蕉 1 根', kcal: 100 },
@@ -87,13 +81,11 @@ export const STORES = Object.freeze([
       protein: [
         { id: 'bento-braised-chicken', name: '滷雞腿（去皮）', kcal: 260 },
         { id: 'bento-mackerel', name: '烤鯖魚', kcal: 320 },
-        { id: 'bento-steamed-fish', name: '清蒸魚', kcal: 200 },
         { id: 'bento-roast-chicken', name: '烤雞腿', kcal: 300 },
         { id: 'bento-tofu-egg', name: '滷豆腐＋滷蛋', kcal: 220 },
       ],
       staple: [
         { id: 'bento-rice-half', name: '白飯半碗', kcal: 140 },
-        { id: 'bento-grain-half', name: '五穀飯半碗', kcal: 150 },
       ],
       veg: [
         { id: 'bento-sides', name: '便當附的配菜（選青菜，避開炸物和勾芡）', kcal: 130 },
@@ -115,20 +107,15 @@ export const STORES = Object.freeze([
       protein: [
         { id: 'buffet-tofu', name: '滷豆腐 2 塊', kcal: 130 },
         { id: 'buffet-steamed-egg', name: '蒸蛋', kcal: 110 },
-        { id: 'buffet-fish', name: '清蒸魚 1 塊', kcal: 170 },
         { id: 'buffet-chicken', name: '滷雞腿（去皮）', kcal: 240 },
         { id: 'buffet-white-chicken', name: '白斬雞（小份）', kcal: 190 },
       ],
       staple: [
         { id: 'buffet-rice', name: '白飯半碗', kcal: 140 },
-        { id: 'buffet-brown-rice', name: '糙米飯半碗', kcal: 150 },
-        { id: 'buffet-pumpkin', name: '蒸南瓜 1 塊（代替飯）', kcal: 90 },
-        { id: 'buffet-sweet-potato', name: '蒸地瓜 1 塊（代替飯）', kcal: 130 },
       ],
       veg: [
         { id: 'buffet-cabbage', name: '炒高麗菜', kcal: 60 },
         { id: 'buffet-bok-choy', name: '炒青江菜', kcal: 50 },
-        { id: 'buffet-yam-leaves', name: '燙地瓜葉', kcal: 50 },
         { id: 'buffet-cucumber', name: '涼拌小黃瓜', kcal: 40 },
         { id: 'buffet-spinach', name: '炒菠菜', kcal: 50 },
         { id: 'buffet-broccoli', name: '炒花椰菜', kcal: 60 },
@@ -164,7 +151,6 @@ export const STORES = Object.freeze([
       ],
       veg: [
         { id: 'noodle-greens', name: '燙青菜（不加肉燥、醬少）', kcal: 70 },
-        { id: 'noodle-yam-leaves', name: '燙地瓜葉', kcal: 60 },
         { id: 'noodle-kelp', name: '滷海帶 2 片', kcal: 30 },
       ],
       drink: [
@@ -174,31 +160,38 @@ export const STORES = Object.freeze([
     },
   },
   {
+    // 台灣麥當勞（v0.4.1）。熱量依台灣麥當勞官方網站各品項頁的營養資訊，取整到 10 大卡。
+    // 來源：https://www.mcdonalds.com/tw/zh-tw/product/<品項>.html（查詢日期 2026-11-04）
+    // 只放不炸的主餐；所有沙拉官方配方都含玉米，使用者不吃玉米，所以不放沙拉、玉米杯、玉米湯。
     id: 'fastfood',
-    name: '速食店',
-    meals: ['breakfast', 'lunch', 'dinner'],
-    tip: '比較不踩雷的選法：主餐選不炸的，不點薯條和含糖飲料。',
+    name: '麥當勞',
+    meals: LD,
+    tip: '主餐選不炸的，不點薯條和含糖飲料；漢堡的麵包就是主食。',
     vegCount: 1,
     cells: {
       protein: [
-        { id: 'ff-egg-burger', name: '蛋堡（不加培根）', kcal: 290, meals: B },
-        { id: 'ff-chicken-egg-burger', name: '烤雞肉蛋堡', kcal: 360, meals: B },
-        { id: 'ff-grilled-chicken-burger', name: '烤雞腿堡（不炸，醬料少）', kcal: 430, meals: LD },
-        { id: 'ff-grilled-chicken-wrap', name: '烤雞捲餅', kcal: 390, meals: LD },
-        { id: 'ff-chicken-salad', name: '烤雞沙拉主餐（醬料只加一半）', kcal: 260, meals: LD },
+        { id: 'mcd-hamburger', name: '漢堡', kcal: 250 },
+        { id: 'mcd-cheeseburger', name: '吉事漢堡', kcal: 300 },
+        { id: 'mcd-smoky-grilled-chicken', name: '炭燒醬烤鷄腿堡', kcal: 350 },
+        { id: 'mcd-mcdouble', name: '麥克雙牛堡', kcal: 400 },
+        { id: 'mcd-double-cheeseburger', name: '雙層牛肉吉事堡', kcal: 440 },
+        { id: 'mcd-blt-grilled-chicken', name: 'BLT香烙烤鷄腿堡', kcal: 460 },
+        { id: 'mcd-big-mac', name: '大麥克', kcal: 500 },
+        { id: 'mcd-blt-angus', name: 'BLT 安格斯牛肉堡', kcal: 540 },
       ],
       staple: [
-        { id: 'ff-bread-included', name: '主餐的麵包／餅皮就是主食，不另點', kcal: 0 },
+        { id: 'mcd-bun-included', name: '漢堡的麵包就是主食，不另點', kcal: 0 },
       ],
       veg: [
-        { id: 'ff-side-salad', name: '小份生菜沙拉（醬料少）', kcal: 60 },
-        { id: 'ff-corn-cup', name: '玉米杯（小）', kcal: 100 },
-        { id: 'ff-apple', name: '蘋果片', kcal: 50 },
+        { id: 'mcd-fruit-bag', name: '水果袋（芭樂，依季節可能不同）', kcal: 30 },
       ],
       drink: [
-        { id: 'ff-green-tea', name: '無糖綠茶', kcal: 0 },
-        { id: 'ff-black-coffee', name: '黑咖啡', kcal: 10 },
-        { id: 'ff-milk', name: '鮮乳', kcal: 130 },
+        { id: 'mcd-green-tea', name: '無糖綠茶', kcal: 0 },
+        { id: 'mcd-black-tea', name: '無糖紅茶', kcal: 0 },
+        { id: 'mcd-americano', name: '經典美式咖啡（熱或冰）', kcal: 20 },
+        { id: 'mcd-latte', name: '經典那堤（熱，不加糖包）', kcal: 120 },
+        { id: 'mcd-milk', name: '鮮乳（盒裝）', kcal: 150 },
+        { id: 'mcd-coke-zero', name: '可口可樂 zero', kcal: 0 },
       ],
     },
   },

@@ -82,7 +82,7 @@ function exerciseRow(ctx, dateKey, day, result, editable, showXp) {
   const isTraining = dayType === 'training';
   const steps = day?.exercise?.steps ?? null;
   let hint;
-  if (isTraining) hint = '約 15–18 分鐘。第 5 步會有跟著做的訓練畫面，現在做完自己打勾。';
+  if (isTraining) hint = '約 15–18 分鐘。到「訓練」分頁跟著做，做完自動打勾。';
   else if (steps === null) hint = showXp
     ? `看 iPhone「健康」App 輸入步數：${STEPS_FULL} 步 +${XP.walkFull}、${STEPS_HALF} 步以上 +${XP.walkHalf}`
     : `看 iPhone「健康」App 輸入步數；${STEPS_HALF} 步以上算完成`;

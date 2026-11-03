@@ -1,7 +1,7 @@
 // 環島地圖的規則（規格書 v0.3.3「台灣環島地圖」第 1–5 點 + v0.4 開始日）：
 // 每週（週一到週日）結算一次；一週至少 3 天有量體重，平均才算數；
 // 平均先四捨五入到小數點後一位，停在「公斤數 ≥ 平均」的站裡公斤數最小的那站。
-import { addDays } from './day.js';
+import { addDays, daysBetween } from './day.js';
 import { endedWeekStarts, weekStartKey } from './game.js';
 import { weekAverage, roundToTenth } from './progress.js';
 import { STATIONS, CHAPTERS, START_KG } from './map-data.js';
@@ -89,4 +89,26 @@ export function settlementMessage(result) {
     return `${avgText}，目前在起點，距離${STATIONS[1].name}還差 ${roundToTenth(result.avg - nextKg).toFixed(1)} 公斤。`;
   }
   return `${avgText}，停在${where}。`;
+}
+
+/** 某一章從哪站開到哪站（起點站、終點站），用來寫「這一章減了 X 公斤」 */
+export function chapterRange(chapterId) {
+  const chapterIndex = CHAPTERS.findIndex((c) => c.id === chapterId);
+  const endIndex = STATIONS.findIndex((s) => s.id === CHAPTERS[chapterIndex].endStationId);
+  const startIndex = chapterIndex === 0 ? START_INDEX : STATIONS.findIndex((s) => s.id === CHAPTERS[chapterIndex - 1].endStationId);
+  return { from: STATIONS[startIndex], to: STATIONS[endIndex] };
+}
+
+/**
+ * 環島完成時的總結：開始時的體重（開始日當天或之後第一筆）、到達終點那週的平均、花了幾週。
+ * 還沒到終點就是 null。
+ */
+export function journeySummary(days, startDate, todayKey) {
+  const goalIndex = STATIONS.length - 1;
+  const reached = settlementHistory(days, startDate, todayKey).find((result) => result.to === goalIndex);
+  if (!reached) return null;
+  const firstKey = Object.keys(days).filter((key) => key >= startDate && days[key]?.weighIn).sort()[0];
+  const startWeight = firstKey ? days[firstKey].weighIn.weightKg : START_KG;
+  const weeks = Math.ceil((daysBetween(startDate, addDays(reached.weekStart, 6)) + 1) / 7);
+  return { startWeight, finalAvg: reached.avg, lost: roundToTenth(startWeight - reached.avg), weeks };
 }

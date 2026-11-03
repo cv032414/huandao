@@ -55,3 +55,20 @@ test('過關畫面：第三章是環島完成的結局', () => {
   assert.equal(chapterContent(1).big, '彰化 75');
   assert.equal(chapterContent(3).title, '環島完成！');
 });
+
+test('過關畫面有彩帶和這一章的成就數字', () => {
+  const first = chapterContent(1);
+  assert.equal(first.withConfetti, true);
+  assert.equal(first.lines[0].text, '這一章減了 5 公斤：台北 80 → 彰化 75');
+  assert.equal(chapterContent(2).lines[0].text, '這一章減了 4 公斤：彰化 75 → 墾丁 71');
+  assert.ok(chapterContent(3).lines.some((line) => (line.text ?? line) === '這一章減了 6 公斤：墾丁 71 → 台北 65'));
+});
+
+test('環島完成：總共減了幾公斤、花了幾週', () => {
+  const ending = chapterContent(3, { startWeight: 80.1, finalAvg: 64.8, lost: 15.3, weeks: 30 });
+  const texts = ending.lines.map((line) => line.text ?? line);
+  assert.ok(texts.includes('總共減了 15.3 公斤'));
+  assert.ok(texts.includes('花了 30 週'));
+  // 試玩（沒有真實資料）時用站的公斤數
+  assert.ok(chapterContent(3).lines.some((line) => (line.text ?? line).includes('共 15 公斤')));
+});

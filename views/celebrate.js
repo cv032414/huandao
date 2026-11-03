@@ -2,6 +2,7 @@
 import { STATIONS, CHAPTERS } from '../map-data.js';
 import {
   latestSettlement, currentStationIndex, newlyClearedChapters, settlementMessage, chaptersReached,
+  chapterRange, journeySummary,
 } from '../map.js';
 import { levelInfo, totalXp, weekSummary, weekStreak, XP, DAYS_TO_ACHIEVE_WEEK } from '../game.js';
 import { unlockedAtLevel } from '../training.js';
@@ -15,7 +16,24 @@ const supportsDialog = () => typeof HTMLDialogElement === 'function' && 'showMod
  * 顯示一個大畫面。onClose 在關掉時呼叫（記錄看過了）。
  * 舊版 iPhone 沒有對話框功能時，改用一般提示框。
  */
-export function showCelebration({ emoji, withCar, title, big, lines, buttonText, onClose }) {
+const CONFETTI_PIECES = 36;
+const CONFETTI_COLORS = ['var(--accent)', 'var(--brand)', 'var(--series-1)', 'var(--series-2)', '#E87BA4'];
+
+/** 彩帶：從上面飄下來的小紙片（只有動畫，沒有聲音；系統設定「減少動態效果」時不顯示） */
+function confetti() {
+  return h('div', { className: 'confetti', 'aria-hidden': 'true' },
+    Array.from({ length: CONFETTI_PIECES }, (_, i) => h('span', {
+      style: [
+        `left: ${Math.round(Math.random() * 100)}%`,
+        `background: ${CONFETTI_COLORS[i % CONFETTI_COLORS.length]}`,
+        `animation-delay: ${(Math.random() * 1.5).toFixed(2)}s`,
+        `animation-duration: ${(2.5 + Math.random() * 2).toFixed(2)}s`,
+        `--drift: ${Math.round((Math.random() - 0.5) * 80)}px`,
+      ].join('; '),
+    })));
+}
+
+export function showCelebration({ emoji, withCar, withConfetti, title, big, lines, buttonText, onClose }) {
   if (!supportsDialog()) {
     const texts = lines.map((line) => (typeof line === 'object' ? line.text : line));
     window.alert([emoji, title, big, ...texts].filter(Boolean).join('\n'));
@@ -23,6 +41,7 @@ export function showCelebration({ emoji, withCar, title, big, lines, buttonText,
     return;
   }
   const dialog = h('dialog', { className: 'celebrate', 'aria-labelledby': 'celebrate-title' },
+    withConfetti ? confetti() : null,
     withCar ? carIcon('celebrate-car') : null,
     emoji ? h('p', { className: 'celebrate-emoji', 'aria-hidden': 'true', text: emoji }) : null,
     h('h2', { id: 'celebrate-title', text: title }),
@@ -67,20 +86,32 @@ export function settlementContent(data, result, todayKey) {
 }
 
 // ---------- 過關 ----------
-export function chapterContent(chapterId) {
+/**
+ * 過關畫面的內容。journey：環島完成時的總結（journeySummary）；試玩時沒有真實資料就是 null。
+ */
+export function chapterContent(chapterId, journey = null) {
   const chapter = CHAPTERS.find((c) => c.id === chapterId);
-  const end = STATIONS.find((s) => s.id === chapter.endStationId);
+  const { from, to } = chapterRange(chapterId);
+  const chapterLine = `這一章減了 ${from.kg - to.kg} 公斤：${from.name} ${from.kg} → ${to.name} ${to.kg}`;
   if (chapterId === CHAPTERS[CHAPTERS.length - 1].id) {
+    const start = STATIONS[0];
+    const summary = journey
+      ? [
+        { className: 'celebrate-stat', text: `總共減了 ${journey.lost.toFixed(1)} 公斤` },
+        `開始時 ${journey.startWeight} 公斤 → 最後一週平均 ${journey.finalAvg.toFixed(1)} 公斤`,
+        { className: 'celebrate-stat', text: `花了 ${journey.weeks} 週` },
+      ]
+      : [{ className: 'celebrate-stat', text: `繞台灣一圈：${start.name} ${start.kg} → ${to.name} ${to.kg}，共 ${start.kg - to.kg} 公斤` }];
     return {
-      emoji: '🏁', title: '環島完成！', big: `${end.name} ${end.kg}`,
-      lines: ['一圈台灣繞完，回到台北，目標達成。', '工具會繼續幫你記錄；之後怎麼維持，再一起討論。'],
+      emoji: '🏁', withConfetti: true, title: '環島完成！', big: `${to.name} ${to.kg}`,
+      lines: [...summary, chapterLine, '工具會繼續幫你記錄；之後怎麼維持，再一起討論。'],
       buttonText: '太棒了',
     };
   }
   const next = CHAPTERS.find((c) => c.id === chapterId + 1);
   return {
-    emoji: '🎊', title: `${chapter.title} 過關！`, big: `${end.name} ${end.kg}`,
-    lines: [`下一段：${next.title}`],
+    emoji: '🎊', withConfetti: true, title: `${chapter.title} 過關！`, big: `${to.name} ${to.kg}`,
+    lines: [{ className: 'celebrate-stat', text: chapterLine }, `下一段：${next.title}`],
     buttonText: '繼續出發',
   };
 }
@@ -110,7 +141,7 @@ export function pendingCelebration(data, todayKey) {
     return { key: `settle:${result.weekStart}`, content: settlementContent(data, result, todayKey), save: (d) => withSeenSettlement(d, result.weekStart) };
   }
   const [chapterId] = newlyClearedChapters(currentStationIndex(data.days, startDate, todayKey), chaptersCleared);
-  if (chapterId) return { key: `chapter:${chapterId}`, content: chapterContent(chapterId), save: (d) => withChapterCleared(d, chapterId) };
+  if (chapterId) return { key: `chapter:${chapterId}`, content: chapterContent(chapterId, journeySummary(data.days, startDate, todayKey)), save: (d) => withChapterCleared(d, chapterId) };
   const { level } = levelInfo(totalXp(data.days, todayKey, startDate));
   if (level > celebratedLevel) {
     return { key: `level:${level}`, content: levelUpContent(level, celebratedLevel), save: (d) => withCelebratedLevel(d, level) };

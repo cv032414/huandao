@@ -76,3 +76,12 @@ test('下一個動作預告會跳過休息', () => {
 test('看真人示範用 YouTube 搜尋連結', () => {
   assert.equal(youtubeSearchUrl('深蹲 正確姿勢'), 'https://www.youtube.com/results?search_query=%E6%B7%B1%E8%B9%B2%20%E6%AD%A3%E7%A2%BA%E5%A7%BF%E5%8B%A2');
 });
+
+test('跳過的動作超過一半才要問「有實際做完嗎？」（休息不算動作）', async () => {
+  const { isMostlySkipped } = await import('../training.js');
+  const steps = [{ kind: 'warmup' }, { kind: 'exercise' }, { kind: 'rest' }, { kind: 'exercise' }, { kind: 'cooldown' }];
+  assert.equal(isMostlySkipped(steps, new Set()), false);
+  assert.equal(isMostlySkipped(steps, new Set([1, 3])), false); // 2／4 剛好一半，不問
+  assert.equal(isMostlySkipped(steps, new Set([0, 1, 3])), true); // 3／4
+  assert.equal(isMostlySkipped(steps, new Set([2])), false); // 跳過休息不算
+});

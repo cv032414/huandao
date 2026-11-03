@@ -4,8 +4,8 @@ import {
   EXERCISES, SAFETY_TIPS, ROUNDS, SECONDS_PER_REP, REST_SECONDS, WARMUP, COOLDOWN,
 } from '../training-data.js';
 import {
-  buildWorkout, chosenVariant, isVariantUnlocked, withEasierExercise, nextActiveStep, estimateSeconds,
-  youtubeSearchUrl, easyVariant,
+  buildWorkout, chosenVariant, isVariantUnlocked, withEasierExercise, nextActiveStep,
+  youtubeSearchUrl, easyVariant, isMostlySkipped,
 } from '../training.js';
 import {
   canEditTasks, countsForXp, currentLevel, weekStartKey, weekSummary, TRAININGS_PER_WEEK, XP,
@@ -95,9 +95,10 @@ function startStep(now) {
 }
 
 /** fromIndex：按下去時畫面上是第幾個；byUser：是手按的（剛換動作時連點的第二下不算） */
-function advance(fromIndex, { byUser = false } = {}) {
+function advance(fromIndex, { byUser = false, skip = false } = {}) {
   if (!isActive() || session.index !== fromIndex) return;
   if (byUser && Date.now() - session.stepStartedAt < TAP_GUARD_MS) return;
+  if (skip) session.skipped = new Set([...session.skipped, fromIndex]);
   session.index += 1;
   if (session.index >= session.steps.length) {
     finish();
@@ -178,19 +179,49 @@ function finish() {
     alreadyDone: data.days[dayKey]?.exercise?.trainingCompleted === true,
     earnsXp: countsForXp(dayKey, data.progress.startDate),
     saveFailed: false,
+    // 跳過超過一半：先問「有實際做完嗎？」，按「有」才打勾
+    needsConfirm: isMostlySkipped(session.steps, session.skipped),
+    notTicked: false,
   };
-  const saved = ctx.commit(withTrainingFinished(data, dayKey, defaultType, now.toISOString()));
+  if (session.result.needsConfirm) {
+    session.askedAt = Date.now();
+    mountPlayer();
+    return;
+  }
+  saveFinish(defaultType, now);
+}
+
+function saveFinish(defaultType, now) {
+  const { ctx, result } = session;
+  const saved = ctx.commit(withTrainingFinished(ctx.getData(), result.dayKey, defaultType, now.toISOString()));
   if (!saved && session) {
     session.result = { ...session.result, saveFailed: true };
     mountPlayer();
   }
 }
 
+/** 回答「這次有實際做完嗎？」 */
+function answerDone(didFinish) {
+  if (!session?.finished || !session.result.needsConfirm) return;
+  // 剛跳出問題時連點的那一下不算（按「跳過」太快，手指落在「有」上）
+  if (Date.now() - session.askedAt < TAP_GUARD_MS) return;
+  const { ctx, result } = session;
+  // 問題開著時資料可能變了（例如在首頁打過勾），重新看一次
+  const alreadyDone = ctx.getData().days[result.dayKey]?.exercise?.trainingCompleted === true;
+  session.result = { ...result, alreadyDone, needsConfirm: false, notTicked: !didFinish };
+  if (!didFinish) {
+    mountPlayer();
+    return;
+  }
+  const defaultType = isDefaultTrainingDay(parseDateKey(result.dayKey)) ? 'training' : 'walk';
+  saveFinish(defaultType, ctx.getNow());
+}
+
 function startSession(ctx, variants) {
   prepareSound();
   session = {
     ctx, steps: buildWorkout(variants), index: 0, dayKey: ctx.todayKey,
-    endsAt: null, stepStartedAt: 0, paused: false, pausedRemaining: null, autoPaused: false, finished: false, lastBeep: null,
+    skipped: new Set(), endsAt: null, stepStartedAt: 0, paused: false, pausedRemaining: null, autoPaused: false, finished: false, lastBeep: null,
     beepEnabled: ctx.data.settings.beepEnabled, wakeLock: null, wakeLockPending: false, wakeLockFailed: false,
     figure: null, timer: null, result: null,
   };
@@ -236,7 +267,8 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('hashchange', () => {
   if (!session || isOnTrainingPage()) return;
   if (session.finished) {
-    closeSession(); // 做完後去別頁，下次回來就是新的開始畫面
+    // 還在問「有實際做完嗎？」就先留著，回來時接著回答；其他情況下次回來就是新的開始畫面
+    if (!session.result?.needsConfirm) closeSession();
     return;
   }
   pause({ auto: true, mount: false });
@@ -258,6 +290,10 @@ function stepControls(step) {
       h('button', {
         className: 'button', type: 'button', text: '完成，下一個', dataset: { focus: 'primary' },
         onClick: () => advance(index, { byUser: true }),
+      }),
+      h('button', {
+        className: 'button button-secondary', type: 'button', text: '跳過這個', dataset: { focus: 'skip' },
+        onClick: () => advance(index, { byUser: true, skip: true }),
       }));
   }
   return h('div', { className: 'player-actions' },
@@ -269,7 +305,7 @@ function stepControls(step) {
     h('button', {
       className: 'button button-secondary', type: 'button',
       text: step.kind === 'rest' ? '跳過休息' : '跳過這個', dataset: { focus: 'skip' },
-      onClick: () => advance(index, { byUser: true }),
+      onClick: () => advance(index, { byUser: true, skip: true }),
     }));
 }
 
@@ -322,6 +358,7 @@ function mountPlayer() {
 }
 
 function finishText(result) {
+  if (result.notTicked) return '這次沒有打勾。下次再一起練！';
   if (result.saveFailed) return '剛剛沒有存成功。請回首頁，手動勾「早晨訓練」。';
   const day = result.isToday ? '今天' : formatShortDate(result.dayKey);
   if (result.alreadyDone) return `${day}已經打過勾了，這次不重複加分。`;
@@ -329,8 +366,18 @@ function finishText(result) {
   return `${day}的「早晨訓練」已經打勾。`;
 }
 
+function confirmView() {
+  return h('section', { className: 'card player-finish' },
+    h('h2', { text: '這次有實際做完嗎？' }),
+    h('p', { text: '這次跳過的動作超過一半。有照自己的方式做完，就按「有」打勾；只是看看或中途停了，按「沒有」。' }),
+    h('div', { className: 'player-actions' },
+      h('button', { className: 'button', type: 'button', text: '有，幫我打勾', dataset: { focus: 'primary' }, onClick: () => answerDone(true) }),
+      h('button', { className: 'button button-secondary', type: 'button', text: '沒有', onClick: () => answerDone(false) })));
+}
+
 function finishView() {
   const { ctx, result } = session;
+  if (result.needsConfirm) return confirmView();
   const done = () => {
     closeSession();
     ctx.navigate('#/');
@@ -373,14 +420,13 @@ function introView(ctx) {
   const isStarted = Boolean(data.progress.startDate);
   const level = currentLevel(data, todayKey);
   const variants = Object.fromEntries(EXERCISES.map((e) => [e.key, chosenVariant(e, data.settings.exerciseVariants, level, isStarted)]));
-  const minutes = Math.round(estimateSeconds(buildWorkout(variants)) / 60);
   const week = weekSummary(data.days, weekStartKey(todayKey));
   const doneToday = data.days[todayKey]?.exercise?.trainingCompleted === true;
 
   return [
     h('section', { className: 'card' },
       h('p', { text: `暖身 ${phaseMinutes(WARMUP)} 分鐘 → ${EXERCISES.length} 個動作輪流做一圈、共 ${ROUNDS} 圈（動作之間休息 ${REST_SECONDS} 秒）→ 收操 ${phaseMinutes(COOLDOWN)} 分鐘。` }),
-      h('p', { className: 'note', text: `這次大約 ${minutes} 分鐘（實際時間依個人速度而定）。本週訓練 ${week.trainingCount}／${TRAININGS_PER_WEEK} 次。` }),
+      h('p', { className: 'note', text: `約 15–18 分鐘（實際時間依個人速度而定）。本週訓練 ${week.trainingCount}／${TRAININGS_PER_WEEK} 次。` }),
       doneToday ? notice('success', h('p', { text: '今天已經完成訓練 ✓（想再做一次也可以，不會重複加分）' })) : null,
       h('button', { className: 'button', type: 'button', text: '開始訓練', onClick: () => startSession(ctx, variants) })),
     safetyNotice(),
