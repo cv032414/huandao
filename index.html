@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>減重闖關</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="減重闖關">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#2E8B6E">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.js"></script>
+</head>
+<body>
+  <aside id="install-banner" class="banner" hidden>
+    <p class="banner-title">請改從主畫面圖示打開</p>
+    <p>從 Safari 分頁打開時，資料和主畫面圖示是分開存的。</p>
+    <p>加入方法：按下方「分享」<span aria-hidden="true">⬆︎</span> →「加入主畫面」，之後都從桌面的「減重闖關」圖示打開。</p>
+  </aside>
+
+  <main id="view"></main>
+
+  <nav class="tabbar" aria-label="主選單">
+    <a href="#/" data-tab="home"><span class="tab-icon" aria-hidden="true">⌂</span>首頁</a>
+    <a href="#/menu" data-tab="menu"><span class="tab-icon" aria-hidden="true">🍱</span>菜單</a>
+    <a href="#/training" data-tab="training"><span class="tab-icon" aria-hidden="true">💪</span>訓練</a>
+    <a href="#/map" data-tab="map"><span class="tab-icon" aria-hidden="true">🗺</span>地圖</a>
+    <a href="#/progress" data-tab="progress"><span class="tab-icon" aria-hidden="true">📈</span>成果</a>
+  </nav>
+</body>
+</html>

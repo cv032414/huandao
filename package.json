@@ -1,0 +1,10 @@
+{
+  "name": "huandao",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "icons": "node tools/make-icons.js",
+    "serve": "node tools/serve.js"
+  }
+}
